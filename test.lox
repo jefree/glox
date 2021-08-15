@@ -1,0 +1,10 @@
+print "here we go"
+
+my_first_str = "hola mundo"
+my_first_int = 10
+
+my_first_op = 2 * 10
+
+print my_first_str
+print my_first_int
+print my_first_op
