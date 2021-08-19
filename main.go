@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	"github.com/jefree/glox/errors"
 )
 
 func main() {
 	if len(os.Args) > 2 {
 		printHelp()
-		os.Exit(errors.Usage)
+		os.Exit(UsageExitCode)
 	}
 
 	if len(os.Args) == 2 {
@@ -26,7 +24,7 @@ func runFile(path string) {
 
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(errors.File)
+		os.Exit(FileExitCode)
 	}
 
 	run(string(bytes))
@@ -37,7 +35,12 @@ func runPrompt() {
 }
 
 func run(source string) {
-	fmt.Println("execute:\n\n" + source)
+	scanner := NewScanner(source)
+	tokens := scanner.ScanTokens()
+
+	for _, token := range tokens {
+		fmt.Println(token)
+	}
 }
 
 func printHelp() {
