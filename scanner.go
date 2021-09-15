@@ -1,6 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"unicode"
+)
 
 type Scanner struct {
 	source  string
@@ -11,7 +16,7 @@ type Scanner struct {
 }
 
 func (s *Scanner) ScanTokens() []Token {
-	for s.current < len(s.source) {
+	for !s.isAtEnd() {
 		s.start = s.current // set the start position for next token
 		s.scanToken()
 	}
@@ -20,7 +25,7 @@ func (s *Scanner) ScanTokens() []Token {
 }
 
 func (s *Scanner) scanToken() {
-	ch := s.source[s.current]
+	ch := s.advance()
 
 	switch ch {
 	// single char tokens
@@ -46,29 +51,46 @@ func (s *Scanner) scanToken() {
 		s.addToken(SLASH, nil)
 	case '*':
 		s.addToken(STAR, nil)
+
 	// one or two charecters tokens
 	case '!':
 		s.addMatchToken('=', BANG_EQUAL, BANG)
 	case '=':
-		s.addMatchToken('=', EQUAL, EQUAL_EQUAL)
+		s.addMatchToken('=', EQUAL_EQUAL, EQUAL)
 	case '>':
-		s.addMatchToken('=', GREATER, GREATER_EQUAL)
+		s.addMatchToken('=', GREATER_EQUAL, GREATER)
 	case '<':
-		s.addMatchToken('=', LESS, LESS_EQUAL)
-		// literal, keywords and unknown tokens
+		s.addMatchToken('=', LESS_EQUAL, LESS)
+
+	// ignore blank spaces
+	case ' ':
+	case '\r':
+	case '\t':
+
+	// new line
 	case '\n':
 		s.line++
-	default:
-		fmt.Println("unknown char: ", string(ch))
-	}
 
-	s.current++
+	// literal string
+	case '"':
+		s.string()
+
+	// literal number, keywords and unknown tokens
+	default:
+		if isDigit(ch) {
+			s.number()
+
+			//} else if isAlpha(ch) {
+		} else {
+			report(s.line, "", fmt.Sprintf("Unexpected character '%c'.", ch))
+		}
+	}
 }
 
 func (s *Scanner) addToken(kind TokenKind, literal interface{}) {
 	token := Token{
 		kind,
-		s.source[s.start : s.current+1],
+		s.source[s.start:s.current],
 		literal,
 		s.line,
 	}
@@ -84,7 +106,17 @@ func (s *Scanner) addMatchToken(ch byte, matchKind TokenKind, defaultKind TokenK
 	}
 }
 
+func (s *Scanner) advance() byte {
+	ch := s.source[s.current]
+	s.current++
+	return ch
+}
+
 func (s *Scanner) match(ch byte) bool {
+	if s.isAtEnd() {
+		return false
+	}
+
 	next := s.source[s.current+1]
 
 	if next != ch {
@@ -93,6 +125,78 @@ func (s *Scanner) match(ch byte) bool {
 
 	s.current++
 	return true
+}
+
+func (s *Scanner) peek() byte {
+	return s.source[s.current]
+}
+
+func (s *Scanner) peekNext() byte {
+	if s.current+1 >= len(s.source) {
+		return '\x00'
+	}
+
+	return s.source[s.current+1]
+}
+
+func (s *Scanner) isAtEnd() bool {
+	return s.current >= len(s.source)
+}
+
+func (s *Scanner) string() {
+	for s.peek() != '"' && !s.isAtEnd() {
+		if s.peek() == '\n' {
+			s.line++
+		}
+
+		s.advance()
+	}
+
+	if s.isAtEnd() {
+		report(s.line, "", "Unterminated string.")
+		return
+	}
+
+	s.advance()
+
+	value := s.source[s.start+1 : s.current-1]
+	s.addToken(STRING, value)
+
+}
+
+func (s *Scanner) number() {
+	for isDigit(s.peek()) {
+		s.advance()
+	}
+
+	if s.peek() == '.' && isDigit(s.peekNext()) {
+		s.advance()
+
+		for isDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	number, err := strconv.ParseFloat(s.source[s.start:s.current], 64)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(SoftwareExitCode)
+	}
+
+	s.addToken(NUMBER, number)
+}
+
+func isAlpha(ch byte) bool {
+	return unicode.IsLetter(rune(ch))
+}
+
+func isDigit(ch byte) bool {
+	return unicode.IsNumber(rune(ch))
+}
+
+func isAlphaDigit(ch byte) bool {
+	return isAlpha(ch) || isDigit(ch)
 }
 
 func NewScanner(source string) *Scanner {

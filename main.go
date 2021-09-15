@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var hadError = false
+
 func main() {
 	if len(os.Args) > 2 {
 		printHelp()
@@ -41,6 +43,11 @@ func run(source string) {
 	for _, token := range tokens {
 		fmt.Println(token)
 	}
+}
+
+func report(line int, where string, message string) {
+	fmt.Fprintf(os.Stderr, "[line %d] Error%s: %s\n", line, where, message)
+	hadError = true
 }
 
 func printHelp() {
