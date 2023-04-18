@@ -80,7 +80,6 @@ func (s *Scanner) scanToken() {
 		if isDigit(ch) {
 			s.number()
 
-			//} else if isAlpha(ch) {
 		} else {
 			report(s.line, "", fmt.Sprintf("Unexpected character '%c'.", ch))
 		}
