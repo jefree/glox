@@ -79,6 +79,8 @@ func (s *Scanner) scanToken() {
 	default:
 		if isDigit(ch) {
 			s.number()
+		} else if isAlpha(ch) {
+			s.identifier()
 
 		} else {
 			report(s.line, "", fmt.Sprintf("Unexpected character '%c'.", ch))
@@ -186,8 +188,21 @@ func (s *Scanner) number() {
 	s.addToken(NUMBER, number)
 }
 
+func (s *Scanner) identifier() {
+	for isAlphaDigit(s.peek()) {
+		s.advance()
+	}
+
+	if tokenType, ok := keywords[s.source[s.start:s.current]]; ok {
+		s.addToken(tokenType, nil)
+	} else {
+		s.addToken(IDENTIFIER, nil)
+	}
+}
+
 func isAlpha(ch byte) bool {
-	return unicode.IsLetter(rune(ch))
+	charRune := rune(ch)
+	return unicode.IsLetter(charRune) || charRune == '_'
 }
 
 func isDigit(ch byte) bool {
