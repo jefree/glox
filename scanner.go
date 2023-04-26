@@ -8,20 +8,20 @@ import (
 )
 
 type Scanner struct {
-	source  string
-	current int
-	start   int
-	line    int
-	tokens  []Token
+	Source  string
+	Current int
+	Start   int
+	Line    int
+	Tokens  []Token
 }
 
 func (s *Scanner) ScanTokens() []Token {
 	for !s.isAtEnd() {
-		s.start = s.current // set the start position for next token
+		s.Start = s.Current // set the start position for next token
 		s.scanToken()
 	}
 
-	return s.tokens
+	return s.Tokens
 }
 
 func (s *Scanner) scanToken() {
@@ -69,7 +69,7 @@ func (s *Scanner) scanToken() {
 
 	// new line
 	case '\n':
-		s.line++
+		s.Line++
 
 	// literal string
 	case '"':
@@ -83,7 +83,7 @@ func (s *Scanner) scanToken() {
 			s.identifier()
 
 		} else {
-			report(s.line, "", fmt.Sprintf("Unexpected character '%c'.", ch))
+			report(s.Line, "", fmt.Sprintf("Unexpected character '%c'.", ch))
 		}
 	}
 }
@@ -91,12 +91,12 @@ func (s *Scanner) scanToken() {
 func (s *Scanner) addToken(kind TokenKind, literal interface{}) {
 	token := Token{
 		kind,
-		s.source[s.start:s.current],
+		s.Source[s.Start:s.Current],
 		literal,
-		s.line,
+		s.Line,
 	}
 
-	s.tokens = append(s.tokens, token)
+	s.Tokens = append(s.Tokens, token)
 }
 
 func (s *Scanner) addMatchToken(ch byte, matchKind TokenKind, defaultKind TokenKind) {
@@ -108,8 +108,8 @@ func (s *Scanner) addMatchToken(ch byte, matchKind TokenKind, defaultKind TokenK
 }
 
 func (s *Scanner) advance() byte {
-	ch := s.source[s.current]
-	s.current++
+	ch := s.Source[s.Current]
+	s.Current++
 	return ch
 }
 
@@ -118,49 +118,49 @@ func (s *Scanner) match(ch byte) bool {
 		return false
 	}
 
-	next := s.source[s.current+1]
+	next := s.Source[s.Current+1]
 
 	if next != ch {
 		return false
 	}
 
-	s.current++
+	s.Current++
 	return true
 }
 
 func (s *Scanner) peek() byte {
-	return s.source[s.current]
+	return s.Source[s.Current]
 }
 
 func (s *Scanner) peekNext() byte {
-	if s.current+1 >= len(s.source) {
+	if s.Current+1 >= len(s.Source) {
 		return '\x00'
 	}
 
-	return s.source[s.current+1]
+	return s.Source[s.Current+1]
 }
 
 func (s *Scanner) isAtEnd() bool {
-	return s.current >= len(s.source)
+	return s.Current >= len(s.Source)
 }
 
 func (s *Scanner) string() {
 	for s.peek() != '"' && !s.isAtEnd() {
 		if s.peek() == '\n' {
-			s.line++
+			s.Line++
 		}
 
 		s.advance()
 	}
 
 	if s.isAtEnd() {
-		report(s.line, "", "Unterminated string.")
+		report(s.Line, "", "Unterminated string.")
 		return
 	}
 
 	s.advance()
 
-	value := s.source[s.start+1 : s.current-1]
+	value := s.Source[s.Start+1 : s.Current-1]
 	s.addToken(STRING, value)
 
 }
@@ -178,7 +178,7 @@ func (s *Scanner) number() {
 		}
 	}
 
-	number, err := strconv.ParseFloat(s.source[s.start:s.current], 64)
+	number, err := strconv.ParseFloat(s.Source[s.Start:s.Current], 64)
 
 	if err != nil {
 		fmt.Println(err)
@@ -193,7 +193,7 @@ func (s *Scanner) identifier() {
 		s.advance()
 	}
 
-	if tokenType, ok := keywords[s.source[s.start:s.current]]; ok {
+	if tokenType, ok := keywords[s.Source[s.Start:s.Current]]; ok {
 		s.addToken(tokenType, nil)
 	} else {
 		s.addToken(IDENTIFIER, nil)
@@ -215,6 +215,6 @@ func isAlphaDigit(ch byte) bool {
 
 func NewScanner(source string) *Scanner {
 	return &Scanner{
-		source: source,
+		Source: source,
 	}
 }

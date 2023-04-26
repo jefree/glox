@@ -9,16 +9,16 @@ import (
 )
 
 var types = []string{
-	"Binary		: left Expr, operator Token, right Expr",
-	"Grouping : expression Expr",
-	"Literal  :	value struct{}",
-	"Unary    : operator Token, right Expr",
+	"Binary		: Left Expr, Operator Token, Right Expr",
+	"Grouping : Expression Expr",
+	"Literal  :	Value interface{}",
+	"Unary    : Operator Token, Right Expr",
 }
 
 const exprBaseName = "Expr"
 
 const exprInterfaceCode = `type Expr interface {
-  accept(visitor Visitor) interface{}
+  Accept(visitor Visitor) interface{}
 }`
 
 const filePath = "../expr.go"
@@ -60,7 +60,7 @@ func defineVisitorInterface(file *os.File, baseName string, types []string) {
 	for _, astType := range types {
 		fullClassName := strings.TrimSpace(strings.Split(astType, ":")[0]) + baseName
 
-		fmt.Fprintf(file, "  visit%s(expr %s) interface{}\n", fullClassName, fullClassName)
+		fmt.Fprintf(file, "  Visit%s(expr %s) interface{}\n", fullClassName, fullClassName)
 	}
 
 	fmt.Fprint(file, "}\n\n")
@@ -80,8 +80,8 @@ func defineType(file *os.File, baseName string, className string, fields []strin
 
 	fmt.Fprint(file, "}\n\n")
 
-	fmt.Fprintf(file, "func (expr %s%s) accept(v Visitor) interface{} {\n", className, baseName)
-	fmt.Fprintf(file, "  return v.visit%s%s(expr)\n", className, baseName)
+	fmt.Fprintf(file, "func (expr %s%s) Accept(v Visitor) interface{} {\n", className, baseName)
+	fmt.Fprintf(file, "  return v.Visit%s%s(expr)\n", className, baseName)
 	fmt.Fprint(file, "}\n\n")
 }
 

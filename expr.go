@@ -4,47 +4,47 @@
 package main
 
 type Visitor interface {
-	visitBinaryExpr(expr BinaryExpr) interface{}
-	visitGroupingExpr(expr GroupingExpr) interface{}
-	visitLiteralExpr(expr LiteralExpr) interface{}
-	visitUnaryExpr(expr UnaryExpr) interface{}
+	VisitBinaryExpr(expr BinaryExpr) interface{}
+	VisitGroupingExpr(expr GroupingExpr) interface{}
+	VisitLiteralExpr(expr LiteralExpr) interface{}
+	VisitUnaryExpr(expr UnaryExpr) interface{}
 }
 
 type Expr interface {
-	accept(visitor Visitor) interface{}
+	Accept(visitor Visitor) interface{}
 }
 
 type BinaryExpr struct {
-	left     Expr
-	operator Token
-	right    Expr
+	Left     Expr
+	Operator Token
+	Right    Expr
 }
 
-func (expr BinaryExpr) accept(v Visitor) interface{} {
-	return v.visitBinaryExpr(expr)
+func (expr BinaryExpr) Accept(v Visitor) interface{} {
+	return v.VisitBinaryExpr(expr)
 }
 
 type GroupingExpr struct {
-	expression Expr
+	Expression Expr
 }
 
-func (expr GroupingExpr) accept(v Visitor) interface{} {
-	return v.visitGroupingExpr(expr)
+func (expr GroupingExpr) Accept(v Visitor) interface{} {
+	return v.VisitGroupingExpr(expr)
 }
 
 type LiteralExpr struct {
-	value struct{}
+	Value interface{}
 }
 
-func (expr LiteralExpr) accept(v Visitor) interface{} {
-	return v.visitLiteralExpr(expr)
+func (expr LiteralExpr) Accept(v Visitor) interface{} {
+	return v.VisitLiteralExpr(expr)
 }
 
 type UnaryExpr struct {
-	operator Token
-	right    Expr
+	Operator Token
+	Right    Expr
 }
 
-func (expr UnaryExpr) accept(v Visitor) interface{} {
-	return v.visitUnaryExpr(expr)
+func (expr UnaryExpr) Accept(v Visitor) interface{} {
+	return v.VisitUnaryExpr(expr)
 }

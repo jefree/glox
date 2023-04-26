@@ -3,12 +3,12 @@ package main
 import "fmt"
 
 type Token struct {
-	kind    TokenKind
-	lexeme  string
-	literal interface{}
-	line    int
+	Kind    TokenKind
+	Lexeme  string
+	Literal interface{}
+	Line    int
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("%s: '%s'\tline: %d", t.kind, t.lexeme, t.line)
+	return fmt.Sprintf("%s: '%s'\tline: %d", t.Kind, t.Lexeme, t.Line)
 }
