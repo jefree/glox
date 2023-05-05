@@ -48,7 +48,21 @@ func (s *Scanner) scanToken() {
 	case ';':
 		s.addToken(SEMICOLON, nil)
 	case '/':
-		s.addToken(SLASH, nil)
+		if s.match('/') {
+			for s.peek() != '\n' && !s.isAtEnd() {
+				s.advance()
+			}
+		} else if s.match('*') {
+			s.advance()
+
+			for {
+				if s.advance() == '*' && s.advance() == '/' {
+					break
+				}
+			}
+		} else {
+			s.addToken(SLASH, nil)
+		}
 	case '*':
 		s.addToken(STAR, nil)
 
@@ -118,7 +132,7 @@ func (s *Scanner) match(ch byte) bool {
 		return false
 	}
 
-	next := s.Source[s.Current+1]
+	next := s.Source[s.Current]
 
 	if next != ch {
 		return false
