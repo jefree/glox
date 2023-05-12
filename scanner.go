@@ -15,6 +15,12 @@ type Scanner struct {
 	Tokens  []Token
 }
 
+func NewScanner(source string) *Scanner {
+	return &Scanner{
+		Source: source,
+	}
+}
+
 func (s *Scanner) ScanTokens() []Token {
 	for !s.isAtEnd() {
 		s.Start = s.Current // set the start position for next token
@@ -225,10 +231,4 @@ func isDigit(ch byte) bool {
 
 func isAlphaDigit(ch byte) bool {
 	return isAlpha(ch) || isDigit(ch)
-}
-
-func NewScanner(source string) *Scanner {
-	return &Scanner{
-		Source: source,
-	}
 }

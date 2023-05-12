@@ -50,6 +50,14 @@ func report(line int, where string, message string) {
 	hadError = true
 }
 
+func error(token Token, message string) {
+	if token.Kind == EOF {
+		report(token.Line, "at end", message)
+	} else {
+		report(token.Line, "at '"+token.Lexeme+"'", message)
+	}
+}
+
 func printHelp() {
 	fmt.Println("Usage: glox [script]")
 }
