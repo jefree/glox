@@ -40,13 +40,20 @@ func run(source string) {
 	scanner := NewScanner(source)
 	tokens := scanner.ScanTokens()
 
-	for _, token := range tokens {
-		fmt.Println(token)
+	parser := NewParser(tokens)
+	expr := parser.Parse()
+
+	fmt.Println(expr)
+
+	if hadError {
+		return
 	}
+
+	fmt.Println(AstPrinter{}.Print(expr))
 }
 
 func report(line int, where string, message string) {
-	fmt.Fprintf(os.Stderr, "[line %d] Error%s: %s\n", line, where, message)
+	fmt.Fprintf(os.Stderr, "[line %d] Error %s: %s\n", line, where, message)
 	hadError = true
 }
 

@@ -27,6 +27,8 @@ func (s *Scanner) ScanTokens() []Token {
 		s.scanToken()
 	}
 
+	s.Tokens = append(s.Tokens, Token{EOF, "", nil, s.Line})
+
 	return s.Tokens
 }
 
@@ -149,6 +151,10 @@ func (s *Scanner) match(ch byte) bool {
 }
 
 func (s *Scanner) peek() byte {
+	if s.isAtEnd() {
+		return '\x00'
+	}
+
 	return s.Source[s.Current]
 }
 

@@ -25,8 +25,14 @@ func NewParser(tokens []Token) *Parser {
 	return &Parser{tokens, 0}
 }
 
-func (p *Parser) Parse() (Expr, error) {
-	return p.expression()
+func (p *Parser) Parse() Expr {
+	expr, err := p.expression()
+
+	if err != nil {
+		return nil
+	}
+
+	return expr
 }
 
 func (p *Parser) expression() (Expr, error) {
@@ -40,12 +46,13 @@ func (p *Parser) equality() (Expr, error) {
 	}
 
 	for p.match(BANG_EQUAL, EQUAL_EQUAL) {
+		operator := p.previous()
 		right, err := p.comparison()
 		if err != nil {
 			return nil, err
 		}
 
-		expr = BinaryExpr{expr, p.previous(), right}
+		expr = BinaryExpr{expr, operator, right}
 	}
 
 	return expr, nil
@@ -58,12 +65,13 @@ func (p *Parser) comparison() (Expr, error) {
 	}
 
 	for p.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
+		operator := p.previous()
 		right, err := p.term()
 		if err != nil {
 			return nil, err
 		}
 
-		expr = BinaryExpr{expr, p.previous(), right}
+		expr = BinaryExpr{expr, operator, right}
 	}
 
 	return expr, nil
@@ -76,12 +84,13 @@ func (p *Parser) term() (Expr, error) {
 	}
 
 	for p.match(MINUS, PLUS) {
+		operator := p.previous()
 		right, err := p.factor()
 		if err != nil {
 			return nil, err
 		}
 
-		expr = BinaryExpr{expr, p.previous(), right}
+		expr = BinaryExpr{expr, operator, right}
 	}
 
 	return expr, nil
@@ -93,13 +102,14 @@ func (p *Parser) factor() (Expr, error) {
 		return nil, err
 	}
 
-	for p.match(MINUS, PLUS) {
+	for p.match(SLASH, STAR) {
+		operator := p.previous()
 		right, err := p.unary()
 		if err != nil {
 			return nil, err
 		}
 
-		expr = BinaryExpr{expr, p.previous(), right}
+		expr = BinaryExpr{expr, operator, right}
 	}
 
 	return expr, nil
@@ -107,12 +117,13 @@ func (p *Parser) factor() (Expr, error) {
 
 func (p *Parser) unary() (Expr, error) {
 	if p.match(BANG, MINUS) {
+		operator := p.previous()
 		expr, err := p.unary()
 		if err != nil {
 			return nil, err
 		}
 
-		return UnaryExpr{p.previous(), expr}, nil
+		return UnaryExpr{operator, expr}, nil
 	}
 
 	return p.primary()
@@ -149,7 +160,7 @@ func (p *Parser) primary() (Expr, error) {
 		return GroupingExpr{expr}, nil
 	}
 
-	return nil, ParseError{}
+	return nil, p.fail(p.peek(), "Expect expression.")
 }
 
 func (p *Parser) match(kinds ...TokenKind) bool {
@@ -183,9 +194,11 @@ func (p *Parser) peek() Token {
 }
 
 func (p *Parser) advance() Token {
-	ch := p.tokens[p.current]
-	p.current++
-	return ch
+	if !p.isAtEnd() {
+		p.current++
+	}
+
+	return p.previous()
 }
 
 func (p *Parser) previous() Token {
