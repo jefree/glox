@@ -12,6 +12,10 @@ package main
 
 type ParseError struct{}
 
+func (err ParseError) Error() string {
+	return "ParseError"
+}
+
 type Parser struct {
 	tokens  []Token
 	current int
@@ -21,87 +25,131 @@ func NewParser(tokens []Token) *Parser {
 	return &Parser{tokens, 0}
 }
 
-func (p *Parser) Parse() Expr {
+func (p *Parser) Parse() (Expr, error) {
 	return p.expression()
 }
 
-func (p *Parser) expression() Expr {
+func (p *Parser) expression() (Expr, error) {
 	return p.equality()
 }
 
-func (p *Parser) equality() Expr {
-	expr := p.comparison()
+func (p *Parser) equality() (Expr, error) {
+	expr, err := p.comparison()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(BANG_EQUAL, EQUAL_EQUAL) {
-		expr = BinaryExpr{expr, p.previous(), p.comparison()}
+		right, err := p.comparison()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = BinaryExpr{expr, p.previous(), right}
 	}
 
-	return expr
+	return expr, nil
 }
 
-func (p *Parser) comparison() Expr {
-	expr := p.term()
+func (p *Parser) comparison() (Expr, error) {
+	expr, err := p.term()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
-		expr = BinaryExpr{expr, p.previous(), p.term()}
+		right, err := p.term()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = BinaryExpr{expr, p.previous(), right}
 	}
 
-	return expr
+	return expr, nil
 }
 
-func (p *Parser) term() Expr {
-	expr := p.factor()
+func (p *Parser) term() (Expr, error) {
+	expr, err := p.factor()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(MINUS, PLUS) {
-		expr = BinaryExpr{expr, p.previous(), p.factor()}
+		right, err := p.factor()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = BinaryExpr{expr, p.previous(), right}
 	}
 
-	return expr
+	return expr, nil
 }
 
-func (p *Parser) factor() Expr {
-	expr := p.unary()
+func (p *Parser) factor() (Expr, error) {
+	expr, err := p.unary()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(MINUS, PLUS) {
-		expr = BinaryExpr{expr, p.previous(), p.unary()}
+		right, err := p.unary()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = BinaryExpr{expr, p.previous(), right}
 	}
 
-	return expr
+	return expr, nil
 }
 
-func (p *Parser) unary() Expr {
+func (p *Parser) unary() (Expr, error) {
 	if p.match(BANG, MINUS) {
-		return UnaryExpr{p.previous(), p.unary()}
+		expr, err := p.unary()
+		if err != nil {
+			return nil, err
+		}
+
+		return UnaryExpr{p.previous(), expr}, nil
 	}
 
 	return p.primary()
 }
 
-func (p *Parser) primary() Expr {
+func (p *Parser) primary() (Expr, error) {
 	if p.match(FALSE) {
-		return LiteralExpr{false}
+		return LiteralExpr{false}, nil
 	}
 
 	if p.match(TRUE) {
-		return LiteralExpr{true}
+		return LiteralExpr{true}, nil
 	}
 
 	if p.match(NIL) {
-		return LiteralExpr{nil}
+		return LiteralExpr{nil}, nil
 	}
 
 	if p.match(NUMBER, STRING) {
-		return LiteralExpr{p.previous().Literal}
+		return LiteralExpr{p.previous().Literal}, nil
 	}
 
 	if p.match(RIGHT_PAREN) {
-		expr := p.expression()
-		p.consume(RIGHT_PAREN, "Expect ')' after expression.")
+		expr, err := p.expression()
+		if err != nil {
+			return nil, err
+		}
 
-		return GroupingExpr{expr}
+		err = p.consume(RIGHT_PAREN, "Expect ')' after expression.")
+		if err != nil {
+			return nil, err
+		}
+
+		return GroupingExpr{expr}, nil
 	}
 
-	return LiteralExpr{p.peek().Literal}
+	return nil, ParseError{}
 }
 
 func (p *Parser) match(kinds ...TokenKind) bool {
@@ -113,6 +161,21 @@ func (p *Parser) match(kinds ...TokenKind) bool {
 	}
 
 	return false
+}
+
+func (p *Parser) consume(kind TokenKind, message string) error {
+	if p.check(kind) {
+		p.advance()
+		return nil
+	}
+
+	return p.fail(p.peek(), message)
+}
+
+func (p *Parser) fail(token Token, message string) ParseError {
+	fail(token, message)
+
+	return ParseError{}
 }
 
 func (p *Parser) peek() Token {
@@ -141,15 +204,19 @@ func (p *Parser) isAtEnd() bool {
 	return p.peek().Kind == EOF
 }
 
-func (p *Parser) consume(kind TokenKind, message string) Token {
-	if p.check(kind) {
-		return p.advance()
+func (p *Parser) synchronize() {
+	p.advance()
+
+	for !p.isAtEnd() {
+		if p.previous().Kind == SEMICOLON {
+			return
+		}
+
+		switch p.peek().Kind {
+		case CLASS, FOR, FUN, IF, PRINT, RETURN, VAR, WHILE:
+			return
+		default:
+			p.advance()
+		}
 	}
-
-	panic(p.error(p.peek(), message))
-}
-
-func (p *Parser) error(token Token, message string) ParseError {
-	error(token, message)
-	return ParseError{}
 }
